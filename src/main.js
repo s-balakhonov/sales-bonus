@@ -7,6 +7,7 @@
 function calculateSimpleRevenue(purchase, _product) {
    // @TODO: Расчет выручки от операции
    const { discount, sale_price, quantity } = purchase;
+   return quantity * sale_price * (1 - discount / 100);
 }
 
 /**
@@ -46,14 +47,40 @@ function analyzeSalesData(data, options) {
         sales_count: 0,
         products_sold: {}
         }));
-    console.log(sellerStats);
+    console.log('sellerStats', sellerStats);
+
     // @TODO: Индексация продавцов и товаров для быстрого доступа
     const sellerIndex = data.sellers.reduce((index, seller) => {
         index[seller.id] = seller;
         return index;
     }, {});
-    console.log(sellerIndex);
-    const productIndex = {};
+    console.log('sellerIndex', sellerIndex);
+
+    const productIndex = data.products.reduce((index, product) => {
+        index[product.sku] = product;
+        return index;
+    }, {});
+    console.log('productIndex', productIndex);
+
+    data.purchase_records.forEach(record => {
+        const seller = sellerIndex[record.seller_id];
+        seller.sales_count++;
+        seller.revenue += record.total_amount;
+
+        record.items.forEach(item => {
+            const product = productIndex[item.sku];
+            const cost = product.purchase_price * item.quantity;
+            const revenue = calculateRevenue(record, product);
+            const income = revenue - cost;
+            seller.profit += income;
+            if (!seller.products_sold[item.sku]) {
+                seller.products_sold[item.sku] = 0;
+            }
+            seller.products_sold[item.sku] += item.quantity;
+        });
+    });
+    console.log('sellerIndex', sellerIndex);
+
     // @TODO: Расчет выручки и прибыли для каждого продавца
 
     // @TODO: Сортировка продавцов по прибыли
