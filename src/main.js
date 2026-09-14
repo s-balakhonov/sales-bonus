@@ -35,9 +35,9 @@ function analyzeSalesData(data, options) {
     }
     // @TODO: Проверка наличия опций
     const { calculateRevenue, calculateBonus } = options;
-    // if (calculateRevenue !== "function" || calculateBonus !== "function") {
-    //     throw new Error ('Переданные параметры не являются функциями');
-    // }
+    if (!{ calculateRevenue, calculateBonus } || typeof(calculateRevenue) !== "function" || typeof(calculateBonus) !== "function") {
+        throw new Error ('Переданные параметры не являются функциями');
+    }
     // @TODO: Подготовка промежуточных данных для сбора статистики
     const sellerStats = data.sellers.map(seller => ({
         id: seller.id,
@@ -50,38 +50,39 @@ function analyzeSalesData(data, options) {
     console.log('sellerStats', sellerStats);
 
     // @TODO: Индексация продавцов и товаров для быстрого доступа
-    const sellerIndex = data.sellers.reduce((index, seller) => {
-        index[seller.id] = seller;
-        return index;
-    }, {});
+    const sellerIndex = data.sellers.reduce((index, seller) => ({
+        [seller.id]: seller,
+        ...index
+    }), {});
     console.log('sellerIndex', sellerIndex);
 
-    const productIndex = data.products.reduce((index, product) => {
-        index[product.sku] = product;
-        return index;
-    }, {});
+    const productIndex = data.products.reduce((index, product) => ({
+        [product.sku]: product,
+        ...index
+    }), {});
     console.log('productIndex', productIndex);
 
+    // @TODO: Расчет выручки и прибыли для каждого продавца
     data.purchase_records.forEach(record => {
-        const seller = sellerIndex[record.seller_id];
+        if (!record.seller_id || sellerStats.id.find(record.seller_id)) return;
+        const seller = sellerStats.id.find(record.seller_id);
         seller.sales_count++;
         seller.revenue += record.total_amount;
 
         record.items.forEach(item => {
+            if (!item.sku) return;
             const product = productIndex[item.sku];
             const cost = product.purchase_price * item.quantity;
             const revenue = calculateRevenue(record, product);
-            const income = revenue - cost;
-            seller.profit += income;
+            seller.profit += (revenue - cost);
             if (!seller.products_sold[item.sku]) {
                 seller.products_sold[item.sku] = 0;
             }
             seller.products_sold[item.sku] += item.quantity;
         });
     });
+    console.log('sellerStats', sellerStats);
     console.log('sellerIndex', sellerIndex);
-
-    // @TODO: Расчет выручки и прибыли для каждого продавца
 
     // @TODO: Сортировка продавцов по прибыли
 
