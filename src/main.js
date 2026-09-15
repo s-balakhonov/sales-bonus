@@ -39,7 +39,14 @@ function calculateBonusByProfit(index, total, seller) {
  */
 function analyzeSalesData(data, options) {
     // @TODO: Проверка входных данных
-    if (!data || !Array.isArray(data.sellers) || data.sellers.length === 0) {
+    if (!data 
+        || !Array.isArray(data.sellers) 
+        || data.sellers.length === 0 
+        || !Array.isArray(data.products) 
+        || data.products.length === 0 
+        || !Array.isArray(data.purchase_records) 
+        || data.purchase_records.length === 0
+    ) {
         throw new Error ('Некорректные входные данные');
     }
 
@@ -98,10 +105,9 @@ function analyzeSalesData(data, options) {
     // @TODO: Назначение премий на основе ранжирования
     sellerStats.forEach((seller, index) => {
         seller.bonus = calculateBonus(index, sellerStats.length, seller);
-        seller.top_products = Object.entries(seller.products_sold)
-            .map(([sku, quantity]) => ({sku, quantity}))
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 10);
+        const products = Object.entries(seller.products_sold).map(([sku, quantity]) => ({sku, quantity}));
+        const topProducts = products.sort((a, b) => b.quantity - a.quantity).slice(0, 10);
+        seller.top_products = topProducts;
     });
 
     // @TODO: Подготовка итоговой коллекции с нужными полями
